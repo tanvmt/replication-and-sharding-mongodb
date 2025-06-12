@@ -1,0 +1,118 @@
+# docker-compose.yml
+# Định nghĩa kiến trúc MongoDB Sharded Cluster với 2 Shard (mỗi Shard là 1 Replica Set 3 thành viên)
+
+version: '3.8'
+
+services:
+  # --- CỤM CONFIG SERVER (REPLICA SET: config-rs) ---
+  # Lưu trữ metadata của cluster
+  mongo-cfg1:
+    image: mongo:latest
+    container_name: mongo-cfg1
+    command: mongod --configsvr --replSet config-rs --port 27019 --dbpath /data/db
+    volumes:
+      - ./data/cfg1:/data/db
+    networks:
+      - mongo-cluster-net
+
+  mongo-cfg2:
+    image: mongo:latest
+    container_name: mongo-cfg2
+    command: mongod --configsvr --replSet config-rs --port 27019 --dbpath /data/db
+    volumes:
+      - ./data/cfg2:/data/db
+    networks:
+      - mongo-cluster-net
+
+  mongo-cfg3:
+    image: mongo:latest
+    container_name: mongo-cfg3
+    command: mongod --configsvr --replSet config-rs --port 27019 --dbpath /data/db
+    volumes:
+      - ./data/cfg3:/data/db
+    networks:
+      - mongo-cluster-net
+
+  # --- CỤM SHARD 1 (REPLICA SET: shard1-rs) ---
+  # Lưu trữ 50% dữ liệu
+  mongo-shard1a:
+    image: mongo:latest
+    container_name: mongo-shard1a
+    command: mongod --shardsvr --replSet shard1-rs --port 27018 --dbpath /data/db
+    volumes:
+      - ./data/shard1a:/data/db
+    networks:
+      - mongo-cluster-net
+
+  mongo-shard1b:
+    image: mongo:latest
+    container_name: mongo-shard1b
+    command: mongod --shardsvr --replSet shard1-rs --port 27018 --dbpath /data/db
+    volumes:
+      - ./data/shard1b:/data/db
+    networks:
+      - mongo-cluster-net
+  
+  mongo-shard1c:
+    image: mongo:latest
+    container_name: mongo-shard1c
+    command: mongod --shardsvr --replSet shard1-rs --port 27018 --dbpath /data/db
+    volumes:
+      - ./data/shard1c:/data/db
+    networks:
+      - mongo-cluster-net
+
+  # --- CỤM SHARD 2 (REPLICA SET: shard2-rs) ---
+  # Lưu trữ 50% dữ liệu còn lại
+  mongo-shard2a:
+    image: mongo:latest
+    container_name: mongo-shard2a
+    command: mongod --shardsvr --replSet shard2-rs --port 27020 --dbpath /data/db
+    volumes:
+      - ./data/shard2a:/data/db
+    networks:
+      - mongo-cluster-net
+
+  mongo-shard2b:
+    image: mongo:latest
+    container_name: mongo-shard2b
+    command: mongod --shardsvr --replSet shard2-rs --port 27020 --dbpath /data/db
+    volumes:
+      - ./data/shard2b:/data/db
+    networks:
+      - mongo-cluster-net
+  
+  mongo-shard2c:
+    image: mongo:latest
+    container_name: mongo-shard2c
+    command: mongod --shardsvr --replSet shard2-rs --port 27020 --dbpath /data/db
+    volumes:
+      - ./data/shard2c:/data/db
+    networks:
+      - mongo-cluster-net
+
+  # --- MONGOS ROUTER ---
+  # Cổng giao tiếp chính cho ứng dụng
+  mongos:
+    image: mongo:latest
+    container_name: mongos
+    command: mongos --configdb config-rs/mongo-cfg1:27019,mongo-cfg2:27019,mongo-cfg3:27019 --port 27017 --bind_ip_all
+    ports:
+      - "27017:27017" # Ánh xạ port 27017 của container ra máy thật
+    depends_on:
+      - mongo-cfg1
+      - mongo-cfg2
+      - mongo-cfg3
+      - mongo-shard1a
+      - mongo-shard1b
+      - mongo-shard1c
+      - mongo-shard2a
+      - mongo-shard2b
+      - mongo-shard2c
+    networks:
+      - mongo-cluster-net
+
+# --- MẠNG ẢO CHO CLUSTER ---
+networks:
+  mongo-cluster-net:
+    driver: bridge
