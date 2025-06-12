@@ -12,29 +12,22 @@ Hệ thống được thiết kế bao gồm 10 container Docker, hoạt động
   - Shard 2 (shard2-rs): Gồm 3 node (mongo-shard2a, 2b, 2c), chạy trên cổng nội bộ 27020.
 ## Yêu cầu Cài đặt
 - [Docker Desktop](https://docs.docker.com/get-docker/) (đã bao gồm docker-compose).
+- Một trình biên dịch dòng lệnh như Command Prompt, PowerShell hoặc Git Bash.
 ## Hướng dẫn Cài đặt và Cấu hình
-### Phần 1: Chuẩn bị Môi trường
-#### 1. Tạo thư mục dự án:
-
-```
-mkdir mongo-2shard-cluster
-cd mongo-2shard-cluster
-```
-
-#### 2. Tạo file docker-compose.yml:
-Tạo một file mới tên là `docker-compose.yml` trong thư mục trên và sao chép toàn bộ nội dung trong file bạn đã cung cấp vào đó.
-
-### Phần 2: Khởi chạy và Khởi tạo Cluster
 Quá trình này yêu cầu thực hiện các lệnh theo đúng thứ tự.
 
-#### Bước 2.1: Khởi chạy toàn bộ Cluster
-Trong terminal tại thư mục mongo-2shard-cluster, chạy lệnh:
+### Bước 1: Khởi chạy toàn bộ Cluster
+Tạo một thư mục cho dự án và đặt file `docker-compose.yml` này vào trong đó.
+Mở terminal tại thư mục dự án và chạy lệnh sau để khởi động tất cả 10 container:
 
-```docker-compose up -d```
+```
+docker-compose up -d
+```
+Chờ một lát để Docker tải image và khởi động các container. Bạn có thể dùng lệnh `docker ps` để kiểm tra xem tất cả đã ở trạng thái "Up" hay chưa.
 
-Lệnh này sẽ khởi động tất cả 10 container ở chế độ nền. Chờ một lát để Docker hoàn tất quá trình này.
+### Bước 2: Khởi tạo các Replica Set
 
-#### Bước 2.2: Khởi tạo Replica Set cho Config Servers
+#### 2.1. Khởi tạo Replica Set cho Config Servers
 Mở một terminal mới và chạy lệnh sau để truy cập vào shell của `mongo-cfg1`:
 
 ```
@@ -56,7 +49,7 @@ rs.initiate({
 ```
 Sau khi thực hiện xong, gõ `exit` và nhấn Enter để thoát.
 
-#### Bước 2.3: Khởi tạo Replica Set cho Shard 1
+#### 2.2 Khởi tạo Replica Set cho Shard 1
 Trong terminal, chạy lệnh để truy cập vào `mongo-shard1a`:
 
 ```
@@ -78,7 +71,7 @@ rs.initiate({
 
 Gõ `exit` để thoát.
 
-#### Bước 2.4: Khởi tạo Replica Set cho Shard 2
+#### 2.3 Khởi tạo Replica Set cho Shard 2
 Trong terminal, chạy lệnh để truy cập vào `mongo-shard2a`:
 
 ```
@@ -97,8 +90,9 @@ rs.initiate({
 })
 ```
 Gõ `exit` để thoát.
+### Bước 3: Thêm các Shard vào Cluster
+Lưu ý: Hãy chờ khoảng 15-20 giây sau khi hoàn thành Bước 2 để các replica set có thời gian bầu cử node Primary.
 
-#### Bước 2.5: Kết nối Mongos và Thêm các Shard vào Cluster
 Bây giờ, cluster đã có các replica set nhưng router `mongos` chưa biết về chúng. Hãy kết nối vào `mongos` từ máy thật của bạn:
 
 ```
@@ -111,7 +105,7 @@ sh.addShard("shard1-rs/mongo-shard1a:27018,mongo-shard1b:27018,mongo-shard1c:270
 sh.addShard("shard2-rs/mongo-shard2a:27020,mongo-shard2b:27020,mongo-shard2c:27020")
 ```
 
-#### Bước 2.6: Kiểm tra Cluster
+### Bước 4: Kiểm tra Cluster
 Vẫn trong shell của `mongos`, chạy lệnh:
 
 ```
